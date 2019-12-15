@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- 页面meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>商品管理</title>
+    <!-- Tell the browser to be responsive to screen width -->
+    <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" name="viewport">
+    <link rel="stylesheet" href="plugins/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="plugins/adminLTE/css/AdminLTE.css">
+    <link rel="stylesheet" href="plugins/adminLTE/css/skins/_all-skins.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="plugins/jQuery/jquery-2.2.3.min.js"></script>
+    <script src="plugins/bootstrap/js/bootstrap.min.js"></script>
+    <script src="plugins/angularjs/angular.min.js"></script>
+
+    <!-- 富文本编辑器 -->
+    <link rel="stylesheet" href="plugins/kindeditor/themes/default/default.css"/>
+    <script charset="utf-8" src="plugins/kindeditor/kindeditor-min.js"></script>
+    <script charset="utf-8" src="plugins/kindeditor/lang/zh_CN.js"></script>
+
+    <!-- 分页组件开始 -->
+    <script src="plugins/angularjs/pagination.js"></script>
+    <link rel="stylesheet" href="plugins/angularjs/pagination.css">
+    <!-- 分页组件结束 -->
+
+    <script src="js/base-pagination.js"></script>
+    <script src="js/service/goodsService.js"></script>
+    <script src="js/controller/baseController.js"></script>
+    <script src="js/controller/goodsController.js"></script>
+</head>
+
+<body class="hold-transition skin-red sidebar-mini" ng-app="pinyougou" ng-controller="goodsController"
+      ng-init="findCatList()">
+<!-- .box-body -->
+
+<div class="box-header with-border">
+    <h3 class="box-title">商品审核</h3>
+</div>
+
+<div class="box-body">
+
+    <!-- 数据表格 -->
+    <div class="table-box">
+
+        <!--工具栏-->
+        <div class="pull-left">
+            <div class="form-group form-inline">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-default" title="删除" ng-click="updateStatus('3')"><i class="fa fa-trash-o"></i> 删除</button>
+                    <button type="button" class="btn btn-default" title="审核通过" ng-click="updateStatus('1')"><i class="fa fa-check"></i> 审核通过</button>
+                    <button type="button" class="btn btn-default" title="驳回" ng-click="updateStatus('2')"><i class="fa fa-ban"></i> 驳回</button>
+                    <button type="button" class="btn btn-default" title="刷新" ng-click="reloadList()"><i class="fa fa-refresh"></i> 刷新</button>
+                </div>
+            </div>
+        </div>
+        <div class="box-tools pull-right">
+            <div class="has-feedback">
+                状态:
+                <select ng-model="query.auditStatus">
+                    <option value="">-请选择-</option>
+                    <option value="0">未审核</option>
+                    <option value="1">已审核</option>
+                    <option value="2">审核未通过</option>
+                    <option value="3">已关闭</option>
+                </select>
+                商品名称：<input ng-model="query.goodsName">
+                <button class="btn btn-default" ng-click="reloadList()">查询</button>
+            </div>
+        </div>
+        <!--工具栏/-->
+        <!--数据列表-->
+        <table id="dataList" class="table table-bordered table-striped table-hover dataTable">
+            <thead>
+            <tr>
+                <th class="" style="padding-right:0px">
+                    <input id="selall" type="checkbox" class="icheckbox_square-blue">
+                </th>
+                <th class="sorting_asc">商品ID</th>
+                <th class="sorting">商品名称</th>
+                <th class="sorting">商品价格</th>
+                <th class="sorting">一级分类</th>
+                <th class="sorting">二级分类</th>
+                <th class="sorting">三级分类</th>
+                <th class="sorting">状态</th>
+                <th class="text-center">操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr ng-repeat="entity in list">
+                <td><input type="checkbox" ng-click="updateSelection($event,entity.id)"></td>
+                <td>{{entity.id}}</td>
+                <td>{{entity.goodsName}}</td>
+                <td>{{entity.price}}</td>
+                <td>{{categoryList[entity.category1Id]}}</td>
+                <td>{{categoryList[entity.category2Id]}}</td>
+                <td>{{categoryList[entity.category3Id]}}</td>
+                <td>
+                    <span>
+                        {{auditStatus[entity.auditStatus]}}
+                    </span>
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn bg-olive btn-xs" data-toggle="modal"
+                            data-target="#editModal">详情
+                    </button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <!--数据列表/-->
+        <!-- 分页 -->
+        <tm-pagination conf="paginationConf"></tm-pagination>
+
+    </div>
+    <!-- 数据表格 /-->
+
+
+</div>
+<!-- /.box-body -->
+
+<!--详情窗口-->
+<!-- 正文区域 -->
+<div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <section class="content">
+
+                <div class="box-body">
+
+                    <!--tab页-->
+                    <div class="nav-tabs-custom">
+
+                        <!--tab头-->
+                        <ul class="nav nav-tabs">
+                            <li class="active">
+                                <a href="#home" data-toggle="tab">商品基本信息</a>
+                            </li>
+                            <li>
+                                <a href="#pic_upload" data-toggle="tab">商品图片</a>
+                            </li>
+                            <li>
+                                <a href="#customAttribute" data-toggle="tab">扩展属性</a>
+                            </li>
+                            <li>
+                                <a href="#spec" data-toggle="tab">规格</a>
+                            </li>
+                        </ul>
+                        <!--tab头/-->
+
+                        <!--tab内容-->
+                        <div class="tab-content">
+
+                            <!--表单内容-->
+                            <div class="tab-pane active" id="home">
+                                <div class="row data-type">
+                                    <div class="col-md-2 title">商品分类</div>
+
+                                    <div class="col-md-10 data">
+                                        <table>
+                                            <tr>
+                                                <td>
+                                                    <select class="form-control">
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <select class="form-control select-sm"></select>
+                                                </td>
+                                                <td>
+                                                    <select class="form-control select-sm"></select>
+                                                </td>
+                                                <td>
+                                                    模板ID:19
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                    </div>
+
+
+                                    <div class="col-md-2 title">商品名称</div>
+                                    <div class="col-md-10 data">
+                                        <input type="text" class="form-control" placeholder="商品名称" value="">
+                                    </div>
+
+                                    <div class="col-md-2 title">品牌</div>
+                                    <div class="col-md-10 data">
+                                        <select class="form-control"></select>
+                                    </div>
+
+                                    <div class="col-md-2 title">副标题</div>
+                                    <div class="col-md-10 data">
+                                        <input type="text" class="form-control" placeholder="副标题" value="">
+                                    </div>
+
+                                    <div class="col-md-2 title">价格</div>
+                                    <div class="col-md-10 data">
+                                        <div class="input-group">
+                                            <span class="input-group-addon">¥</span>
+                                            <input type="text" class="form-control" placeholder="价格" value="">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-2 title editer">商品介绍</div>
+                                    <div class="col-md-10 data editer">
+                                        <textarea name="content"
+                                                  style="width:800px;height:400px;visibility:hidden;"></textarea>
+                                    </div>
+
+                                    <div class="col-md-2 title rowHeight2x">包装列表</div>
+                                    <div class="col-md-10 data rowHeight2x">
+
+                                        <textarea rows="4" class="form-control" placeholder="包装列表"></textarea>
+                                    </div>
+
+                                    <div class="col-md-2 title rowHeight2x">售后服务</div>
+                                    <div class="col-md-10 data rowHeight2x">
+                                        <textarea rows="4" class="form-control" placeholder="售后服务"></textarea>
+                                    </div>
+
+
+                                </div>
+                            </div>
+
+                            <!--图片上传-->
+                            <div class="tab-pane" id="pic_upload">
+                                <div class="row data-type">
+                                    <!-- 颜色图片 -->
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-default" title="新建"
+                                                data-target="#uploadModal" data-toggle="modal"><i
+                                                class="fa fa-file-o"></i> 新建
+                                        </button>
+
+                                    </div>
+
+                                    <table class="table table-bordered table-striped table-hover dataTable">
+                                        <thead>
+                                        <tr>
+
+                                            <th class="sorting">颜色</th>
+                                            <th class="sorting">图片</th>
+                                            <th class="sorting">操作</th>
+                                        </thead>
+                                        <tbody>
+                                        <tr>
+                                            <td>
+
+                                            </td>
+                                            <td>
+                                                <img alt="" src="" width="100px" height="100px">
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-default" title="删除"><i
+                                                        class="fa fa-trash-o"></i> 删除
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+
+                                </div>
+                            </div>
+
+
+                            <!--扩展属性-->
+                            <div class="tab-pane" id="customAttribute">
+                                <div class="row data-type">
+                                    <div>
+                                        <div class="col-md-2 title">扩展属性1</div>
+                                        <div class="col-md-10 data">
+                                            <input class="form-control" placeholder="扩展属性1">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="col-md-2 title">扩展属性2</div>
+                                        <div class="col-md-10 data">
+                                            <input class="form-control" placeholder="扩展属性2">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!--规格-->
+                            <div class="tab-pane" id="spec">
+                                <div class="row data-type">
+                                    <div class="col-md-2 title">是否启用规格</div>
+                                    <div class="col-md-10 data">
+                                        <input type="checkbox">
+                                    </div>
+                                </div>
+                                <p>
+
+                                <div>
+
+                                    <div class="row data-type">
+
+                                        <div>
+                                            <div class="col-md-2 title">屏幕尺寸</div>
+                                            <div class="col-md-10 data">
+
+					                            <span>
+					                            	<input type="checkbox">4.0
+					                            </span>
+                                                <span>
+					                            	<input type="checkbox">4.5
+					                            </span>
+                                                <span>
+					                            	<input type="checkbox">5.0
+					                            </span>
+
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="col-md-2 title">网络制式</div>
+                                            <div class="col-md-10 data">
+
+					                            <span>
+					                            	<input type="checkbox">2G
+					                            </span>
+                                                <span>
+					                            	<input type="checkbox">3G
+					                            </span>
+                                                <span>
+					                            	<input type="checkbox">4G
+					                            </span>
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="row data-type">
+                                        <table class="table table-bordered table-striped table-hover dataTable">
+                                            <thead>
+                                            <tr>
+                                                <th class="sorting">屏幕尺寸</th>
+                                                <th class="sorting">网络制式</th>
+                                                <th class="sorting">价格</th>
+                                                <th class="sorting">库存</th>
+                                                <th class="sorting">是否启用</th>
+                                                <th class="sorting">是否默认</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                <td>
+                                                    4.0
+                                                </td>
+                                                <td>
+                                                    3G
+                                                </td>
+                                                <td>
+                                                    <input class="form-control" placeholder="价格">
+                                                </td>
+                                                <td>
+                                                    <input class="form-control" placeholder="库存数量">
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox">
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox">
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    4.0
+                                                </td>
+                                                <td>
+                                                    4G
+                                                </td>
+                                                <td>
+                                                    <input class="form-control" placeholder="价格">
+                                                </td>
+                                                <td>
+                                                    <input class="form-control" placeholder="库存数量">
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox">
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox">
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    5.0
+                                                </td>
+                                                <td>
+                                                    3G
+                                                </td>
+                                                <td>
+                                                    <input class="form-control" placeholder="价格">
+                                                </td>
+                                                <td>
+                                                    <input class="form-control" placeholder="库存数量">
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox">
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox">
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    5.0
+                                                </td>
+                                                <td>
+                                                    4G
+                                                </td>
+                                                <td>
+                                                    <input class="form-control" placeholder="价格">
+                                                </td>
+                                                <td>
+                                                    <input class="form-control" placeholder="库存数量">
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox">
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox">
+                                                </td>
+                                            </tr>
+
+                                            </tbody>
+                                        </table>
+
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                        <!--tab内容/-->
+                        <!--表单内容/-->
+
+                    </div>
+
+
+                </div>
+                <div class="btn-toolbar list-toolbar">
+                    <button class="btn btn-primary"><i class="fa fa-save"></i>保存</button>
+                    <button class="btn btn-default">返回列表</button>
+                </div>
+
+            </section>
+        </div>
+    </div>
+</div>
+
+<!-- 正文区域 /-->
+<script type="text/javascript">
+
+    var editor;
+    KindEditor.ready(function (K) {
+        editor = K.create('textarea[name="content"]', {
+            allowFileManager: true
+        });
+    });
+
+</script>
+</body>
+
+</html>

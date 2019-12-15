@@ -1,0 +1,12 @@
+server:
+  port: 8091
+  servlet:
+    context-path: /mall-management-web
+
+spring:
+  application:
+    name: mall-managent-web
+  mvc:
+    view:
+      prefix: /
+      suffix: .html
